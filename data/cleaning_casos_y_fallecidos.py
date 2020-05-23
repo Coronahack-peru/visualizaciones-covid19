@@ -38,6 +38,7 @@ def replaceCharacters(nameOld):
     nameOld=nameOld.replace(' DEL ', '')
     nameOld=nameOld.replace(' LA ', '')
     nameOld=nameOld.replace(' LAS ', '')
+    nameOld=nameOld.replace(' ', '')
 
     nameNew = nameOld
 
@@ -61,6 +62,9 @@ dataDistritos.columns = dataDistritos.columns.str.lower()
 dataDistritos['departamento'] = dataDistritos['departamento'].str.upper()
 dataDistritos['provincia'] = dataDistritos['provincia'].str.upper()
 dataDistritos['distrito'] = dataDistritos['distrito'].str.upper()
+
+#Save distrito name for later:
+dataDistritosName = dataDistritos[['ubigeo','departamento','provincia','distrito']].copy()
 
 dataDistritos['departamento'] = list(map(lambda x: replaceCharacters(x), dataDistritos['departamento']))
 dataDistritos['provincia'] = list(map(lambda x: replaceCharacters(x), dataDistritos['provincia']))
@@ -96,7 +100,7 @@ reportePositivos.loc[(reportePositivos['edad']>=-1) & (reportePositivos['edad']<
 reportePositivos.loc[(reportePositivos['edad']>19) & (reportePositivos['edad']<=44),'grupo_etario']  = 2
 reportePositivos.loc[(reportePositivos['edad']>44) & (reportePositivos['edad']<=64),'grupo_etario']  = 3
 reportePositivos.loc[(reportePositivos['edad']>64) & (reportePositivos['edad']<=74),'grupo_etario']  = 4
-reportePositivos.loc[reportePositivos['edad']>=74 ,'grupo_etario'] = 5
+reportePositivos.loc[reportePositivos['edad']>74 ,'grupo_etario'] = 5
 
 #Replace Tildes and Nhes
 reportePositivos['departamento'] = list(map(lambda x: replaceCharacters(x), reportePositivos['departamento']))
@@ -133,7 +137,7 @@ reporteFallecidos['provincia'] = list(map(lambda x: replaceCharacters(x), report
 reporteFallecidos['distrito'] = list(map(lambda x: replaceCharacters(x), reporteFallecidos['distrito']))
 
 
-print("5. GET TOP 10 DISTRICTS WITH MORE POSITIVE CASES BY DPTO")
+print("5. MERGE DATASETS (1) N HABITANTES (2) N POSITIVE CASES (3) N DESEASED")
 
 # Numero de Casos Positivos
 positiveCasesDistrito = (reportePositivos.loc[:,['departamento','provincia','distrito','grupo_etario','count']]
@@ -150,11 +154,11 @@ fallecidosDistrito = (reporteFallecidos.loc[:,['departamento','provincia','distr
                         .rename(columns={'count':'nFallecidos'}))
 
 # Merge aggregated statistics by districts
-districtsLevelData = (positiveCasesDistrito
-                        .merge(fallecidosDistrito, on=['departamento','provincia','distrito','grupo_etario'], how='left', indicator=True).rename(columns={'_merge':'_mergeFallecidos'})
-                        .merge(dataDistritos, on=['departamento','provincia','distrito','grupo_etario'], how='left', indicator=True).rename(columns={'_merge':'_mergeHabitantes'}))
+districtsLevelData = (dataDistritos
+                        .merge(positiveCasesDistrito, on=['departamento','provincia','distrito','grupo_etario'], how='left', indicator=True).rename(columns={'_merge':'_mergePositivos'})
+                        .merge(fallecidosDistrito, on=['departamento','provincia','distrito','grupo_etario'], how='left', indicator=True).rename(columns={'_merge':'_mergeFallecidos'}))
 
-districtsLevelData = districtsLevelData.loc[districtsLevelData['_mergeHabitantes']=='both',:].drop(['_mergeFallecidos', '_mergeHabitantes'], axis=1)
+districtsLevelData = districtsLevelData.loc[districtsLevelData['_mergePositivos']=='both',:].drop(['_mergeFallecidos', '_mergePositivos'], axis=1)
 
 
 districtsLevelData = districtsLevelData.sort_values('nFallecidos',ascending=False)
@@ -165,10 +169,18 @@ districtsLevelData.loc[districtsLevelData['nPositivos']<=30,'tasa_fatalidad'] = 
 
 districtsLevelData.sort_values('muertesPCP',ascending=False).head(10)
 
-districtsLevelData = districtsLevelData[['ubigeo', 'departamento', 'provincia', 'distrito', 'grupo_etario', 'nPositivos', 'nFallecidos','nHabitantes', 'infectadosPCP', 'muertesPCP', 'tasa_fatalidad']]
 districtsLevelData['ubigeo'] = districtsLevelData['ubigeo'].astype(int)
+districtsLevelData = districtsLevelData.drop(['departamento', 'provincia', 'distrito'],axis=1)
 
+
+#Get departamento, provincia and distrito name again:
+districtsLevelData = districtsLevelData.merge(dataDistritosName, on='ubigeo', how='left')
+districtsLevelData = districtsLevelData[['ubigeo', 'departamento', 'provincia', 'distrito', 'grupo_etario', 'nPositivos', 'nFallecidos','nHabitantes', 'infectadosPCP', 'muertesPCP', 'tasa_fatalidad']]
+districtsLevelData = districtsLevelData.dropna(subset=['ubigeo'])
+
+#Export Final Dataset:
 districtsLevelData.to_csv(os.path.join(pathVisualizaciones,'data','contagios_fallecidos_distritos.csv'), index=False)
+
 
 
 list(districtsLevelData)
