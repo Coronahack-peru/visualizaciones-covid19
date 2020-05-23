@@ -34,6 +34,11 @@ def replaceCharacters(nameOld):
     nameOld=nameOld.replace('Ú', 'U')
     nameOld=nameOld.replace('Ñ', 'N')
 
+    nameOld=nameOld.replace(' DE ', '')
+    nameOld=nameOld.replace(' DEL ', '')
+    nameOld=nameOld.replace(' LA ', '')
+    nameOld=nameOld.replace(' LAS ', '')
+
     nameNew = nameOld
 
     return nameNew
