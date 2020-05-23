@@ -8,21 +8,40 @@ import matplotlib.pyplot as plt
 
 
 pathData = "C:/Users/ffalcon/Documents/GitHub/Datos-Abiertos-COVID-19" # pathData = "C:/Users/ffalcon/Dropbox/covid-cases"
+pathVisualizaciones = "C:/Users/ffalcon/Documents/GitHub/visualizaciones-covid19" # pathData = "C:/Users/ffalcon/Dropbox/covid-cases"
+
 
 print("1. CARGAR BASES DE DATOS")
 
 reportePositivos = pd.read_csv(os.path.join(pathData, 'DATOSABIERTOS_SISCOVID.csv'), encoding='iso8859_2')
 reportePositivos.columns = reportePositivos.columns.str.lower()
-reportePositivos = reportePositivos.dropna(subset=['fecha_nacimiento'])
+reportePositivos = reportePositivos.dropna(subset=['fecha_nacimiento','departamento','provincia','distrito'])
 
 reporteFallecidos = pd.read_csv(os.path.join(pathData, 'fallecidos_minsa_covid19.csv'), encoding='iso8859_2')
 reporteFallecidos.columns = reporteFallecidos.columns.str.lower()
 reporteFallecidos.shape
-reporteFallecidos = reporteFallecidos.dropna(subset=['fecha_nacimiento'])
+reporteFallecidos = reporteFallecidos.dropna(subset=['fecha_nacimiento','departamento','provincia','distrito'])
 
 dataDistritos = pd.read_excel(os.path.join(pathData,'..','Datos-Complementarios-COVID19','Información de Distritos 2020.xlsx'),sheet_name="Nivel Distrital")
 dataDistritos = dataDistritos.iloc[:1873,:]
 
+def replaceCharacters(nameOld):
+
+    nameOld=nameOld.replace('Á', 'A')
+    nameOld=nameOld.replace('É', 'E')
+    nameOld=nameOld.replace('Í', 'I')
+    nameOld=nameOld.replace('Ó', 'O')
+    nameOld=nameOld.replace('Ú', 'U')
+    nameOld=nameOld.replace('Ñ', 'N')
+
+    nameOld=nameOld.replace(' DE ', '')
+    nameOld=nameOld.replace(' DEL ', '')
+    nameOld=nameOld.replace(' LA ', '')
+    nameOld=nameOld.replace(' LAS ', '')
+
+    nameNew = nameOld
+
+    return nameNew
 
 print("2. CLEAN DISTRICT DATA A LITTLE BIT")
 
@@ -37,13 +56,17 @@ dataDistritos['grupo_etario4'] = (dataDistritos['De 65 a 69 años\n2017'] + data
 dataDistritos['grupo_etario5'] = (dataDistritos['De 75 a 79 años\n2017'] + dataDistritos['De 80 a 84 años\n2017'] +
                                     dataDistritos['De 85 a 89 años\n2017'] + dataDistritos['De 90 a 94 años\n2017'] + dataDistritos['De 95 a más\n2017'])
 
-dataDistritos = dataDistritos[['Departamento','Provincia','Distrito','grupo_etario1','grupo_etario2','grupo_etario3','grupo_etario4','grupo_etario5']]
+dataDistritos = dataDistritos[['UBIGEO','Departamento','Provincia','Distrito','grupo_etario1','grupo_etario2','grupo_etario3','grupo_etario4','grupo_etario5']]
 dataDistritos.columns = dataDistritos.columns.str.lower()
 dataDistritos['departamento'] = dataDistritos['departamento'].str.upper()
 dataDistritos['provincia'] = dataDistritos['provincia'].str.upper()
 dataDistritos['distrito'] = dataDistritos['distrito'].str.upper()
 
-dataDistritos = pd.wide_to_long(dataDistritos, stubnames="grupo_etario", i=['departamento','provincia','distrito'], j="agecat").reset_index().rename(columns={'grupo_etario':'nHabitantes','agecat':'grupo_etario'})
+dataDistritos['departamento'] = list(map(lambda x: replaceCharacters(x), dataDistritos['departamento']))
+dataDistritos['provincia'] = list(map(lambda x: replaceCharacters(x), dataDistritos['provincia']))
+dataDistritos['distrito'] = list(map(lambda x: replaceCharacters(x), dataDistritos['distrito']))
+
+dataDistritos = pd.wide_to_long(dataDistritos, stubnames="grupo_etario", i=['ubigeo','departamento','provincia','distrito'], j="agecat").reset_index().rename(columns={'grupo_etario':'nHabitantes','agecat':'grupo_etario'})
 
 print("3. MODIFY TIMESTAMPS POSITIVOS")
 
@@ -70,10 +93,15 @@ reportePositivos['count'] = 1
 #Armar categoria por grupo etario
 reportePositivos['grupo_etario'] = np.nan
 reportePositivos.loc[(reportePositivos['edad']>=-1) & (reportePositivos['edad']<=19),'grupo_etario']   = 1
-reportePositivos.loc[(reportePositivos['edad']>20) & (reportePositivos['edad']<=44),'grupo_etario']  = 2
+reportePositivos.loc[(reportePositivos['edad']>19) & (reportePositivos['edad']<=44),'grupo_etario']  = 2
 reportePositivos.loc[(reportePositivos['edad']>44) & (reportePositivos['edad']<=64),'grupo_etario']  = 3
 reportePositivos.loc[(reportePositivos['edad']>64) & (reportePositivos['edad']<=74),'grupo_etario']  = 4
 reportePositivos.loc[reportePositivos['edad']>=74 ,'grupo_etario'] = 5
+
+#Replace Tildes and Nhes
+reportePositivos['departamento'] = list(map(lambda x: replaceCharacters(x), reportePositivos['departamento']))
+reportePositivos['provincia'] = list(map(lambda x: replaceCharacters(x), reportePositivos['provincia']))
+reportePositivos['distrito'] = list(map(lambda x: replaceCharacters(x), reportePositivos['distrito']))
 
 
 print("4. MODIFY TIMESTAMPS FALLECIDOS")
@@ -99,6 +127,10 @@ reporteFallecidos.loc[(reporteFallecidos['edad']>44) & (reporteFallecidos['edad'
 reporteFallecidos.loc[(reporteFallecidos['edad']>64) & (reporteFallecidos['edad']<=74),'grupo_etario']  = 4
 reporteFallecidos.loc[reporteFallecidos['edad']>=74 ,'grupo_etario'] = 5
 
+#Replace Tildes and Nhes
+reporteFallecidos['departamento'] = list(map(lambda x: replaceCharacters(x), reporteFallecidos['departamento']))
+reporteFallecidos['provincia'] = list(map(lambda x: replaceCharacters(x), reporteFallecidos['provincia']))
+reporteFallecidos['distrito'] = list(map(lambda x: replaceCharacters(x), reporteFallecidos['distrito']))
 
 
 print("5. GET TOP 10 DISTRICTS WITH MORE POSITIVE CASES BY DPTO")
@@ -117,11 +149,13 @@ fallecidosDistrito = (reporteFallecidos.loc[:,['departamento','provincia','distr
                         .reset_index()
                         .rename(columns={'count':'nFallecidos'}))
 
-
 # Merge aggregated statistics by districts
 districtsLevelData = (positiveCasesDistrito
-                        .merge(fallecidosDistrito, on=['departamento','provincia','distrito','grupo_etario'])
-                        .merge(dataDistritos, on=['departamento','provincia','distrito','grupo_etario']))
+                        .merge(fallecidosDistrito, on=['departamento','provincia','distrito','grupo_etario'], how='left', indicator=True).rename(columns={'_merge':'_mergeFallecidos'})
+                        .merge(dataDistritos, on=['departamento','provincia','distrito','grupo_etario'], how='left', indicator=True).rename(columns={'_merge':'_mergeHabitantes'}))
+
+districtsLevelData = districtsLevelData.loc[districtsLevelData['_mergeHabitantes']=='both',:].drop(['_mergeFallecidos', '_mergeHabitantes'], axis=1)
+
 
 districtsLevelData = districtsLevelData.sort_values('nFallecidos',ascending=False)
 districtsLevelData['infectadosPCP'] = (districtsLevelData['nPositivos']/districtsLevelData['nHabitantes'])*1000
@@ -131,6 +165,13 @@ districtsLevelData.loc[districtsLevelData['nPositivos']<=30,'tasa_fatalidad'] = 
 
 districtsLevelData.sort_values('muertesPCP',ascending=False).head(10)
 
+districtsLevelData = districtsLevelData[['ubigeo', 'departamento', 'provincia', 'distrito', 'grupo_etario', 'nPositivos', 'nFallecidos','nHabitantes', 'infectadosPCP', 'muertesPCP', 'tasa_fatalidad']]
+districtsLevelData['ubigeo'] = districtsLevelData['ubigeo'].astype(int)
+
+districtsLevelData.to_csv(os.path.join(pathVisualizaciones,'data','contagios_fallecidos_distritos.csv'), index=False)
+
+
+list(districtsLevelData)
 #Plot Fatality Rate
 varName= 'infectadosPCP'
 a_plot = sns.kdeplot(districtsLevelData.loc[districtsLevelData['grupo_etario']==2, varName],color='blue',label='[18 44]')
@@ -138,3 +179,9 @@ a_plot = sns.kdeplot(districtsLevelData.loc[districtsLevelData['grupo_etario']==
 a_plot = sns.kdeplot(districtsLevelData.loc[districtsLevelData['grupo_etario']==4, varName],color='green',label='[65 74]')
 a_plot = sns.kdeplot(districtsLevelData.loc[districtsLevelData['grupo_etario']==5, varName],color='black',label='[75 100]')
 a_plot.set(xlim=(0, 30))
+
+
+
+
+# Agregar UBIGEO
+#
