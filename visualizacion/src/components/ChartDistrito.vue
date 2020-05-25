@@ -36,7 +36,6 @@
   import map from 'lodash/map'
   import sum from 'lodash/sum'
   import groupBy from 'lodash/groupBy'
-  import moment from 'moment'
 
   export default {
     name: "ChartDistrito",
