@@ -1,6 +1,6 @@
 <template>
   <div class="container">  
-    <div class="row mb-5 text-center">
+    <div class="row mb-1 text-center pt-3 pb-3">
       <div class="col-12">
         <div class="logo"><img src="./images/logo.png" /></div>
         <h1>Corona-Zona</h1>
@@ -8,24 +8,14 @@
       </div>
     </div>
     <div class="row mb-5 justify-content-center">
-      <div class="col-12 col-md-4">
-        <form class="row">
-          <div class="col-6">
-            <div class="form-group">
-              <label for="exampleFormControlSelect1">Departamento</label>
-              <select class="form-control" id="departamentoList" @change="seleccionarMapa">
-                <option v-for="region in regiones" :value="region">{{ region }}</option>
-              </select>
-            </div>
-          </div>
+      <div class="col-12 col-md-4 text-center">
+        <div class="form-group">
+            <p><strong>Conoce los los casos de covid-19 positivos y fallecidos por grupo etario en: </strong></p>
+            <select class="form-control" id="departamentoList" @change="seleccionarMapa">
+              <option v-for="region in regiones" :value="region">{{ region }}</option>
+            </select>
           
-          <div class="col-6">
-            <div class="form-group">
-              <label for="edadReader">Edad</label>
-              <input type="number" class="form-control" id="edadReader">
-            </div>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
     <div class="row mb-5 justify-content-center">

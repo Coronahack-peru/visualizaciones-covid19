@@ -1,58 +1,38 @@
 <template>
   <div class="row justify-content-center">
-    <div class="col-12 text-center">
-      <h2>Resultados en {{ departamento }} por grupo de edad</h2>
-    </div>
-    <div class="col-12">
-      <highcharts :options="chartOptions"></highcharts>
-    </div>
+
     <div class="col-12">
       <div class="row mb-3 text-center justify-content-center">
 
         <div class="col">
-          <input class="form-check-input" type="radio" name="var_dataset" group="var_dataset" id="nPositivos" value="nPositivos" checked @click="change_data">
-          <label class="form-check-label" for="nPositivos">
-            Nro positivos
-          </label>
-        </div>
-
-        <div class="col">
-          <input class="form-check-input" type="radio" name="var_dataset"  group="var_dataset" id="nFallecidos" value="nFallecidos" @click="change_data">
-          <label class="form-check-label" for="nFallecidos" >
-            Nro. Fallecidos
-          </label>
-        </div>
-
-        <div class="col">
-          <input class="form-check-input" type="radio" name="var_dataset" id="infectadosPCP" value="infectadosPCP"  group="var_dataset" @click="change_data">
-          <label class="form-check-label" for="infectadosPCP">
-            Nro. infectados PCP
-          </label>
-        </div>
-
-        <div class="col">
-          <input class="form-check-input" type="radio" name="var_dataset" id="nFallecidos" value="nFallecidos" group="var_dataset" @click="change_data">
-          <label class="form-check-label" for="muertesPCP">
-            Nro. muertes PCP
-          </label>
-        </div>
-
-        <div class="col">
-          <input class="form-check-input" type="radio" name="var_dataset" id="tasa_fatalidad" value="tasa_fatalidad" group="var_dataset" @click="change_data">
-          <label class="form-check-label" for="tasa_fatalidad">
-           Tasa fatalidad
-          </label>
+          <b-form-group label="Categorias">
+            <b-form-checkbox-group
+              id="radio-group-1"
+              v-model="campoActivo"
+              :options="campos"
+              value-field="name"
+              text-field="label"
+              name="radio-options"
+            ></b-form-checkbox-group>
+          </b-form-group>
         </div>
 
       </div>
-        
     </div>
+
+    <div class="col-12">
+      <div class="chart-container">
+        <highcharts :options="chartOptions"></highcharts>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script>
   import { Chart } from 'highcharts-vue'
   import sortBy from 'lodash/sortBy'
+  import filter from 'lodash/filter'
   import map from 'lodash/map'
   import sum from 'lodash/sum'
   import groupBy from 'lodash/groupBy'
@@ -71,13 +51,56 @@
     data() {
       return {
         categories: [],
-        campo: 'nPositivos'
-      }
-    },
-    methods: {
-      change_data(e) {
-        console.log(e.target.value)
-        this.campo = e.target.value
+        campoActivo: ['nPositivos', 'nFallecidos', 'infectadosPCP', 'muertesPCP', 'tasa_fatalidad'],
+        campos: [
+        {
+          'name':'nPositivos',
+          'label':'Nro. positivos',
+        }, 
+        {
+          'name':'nFallecidos',
+          'label':'Nro. Fallecidos',
+        }, 
+        {
+          'name':'infectadosPCP',
+          'label':'Nro. infectados PCP',
+        }, 
+        {
+          'name':'muertesPCP',
+          'label':'Nro. muertes PCP',
+        }, 
+        {
+          'name':'tasa_fatalidad',
+          'label':'Tasa fatalidad',
+        }, 
+      ],
+      grupo_etario: [
+        {
+          "grupo": "1",
+          "name": "0 - 19 años",
+          "color": "#fbb4ae"
+        },
+        {
+          "grupo": "2",
+          "name": "20 - 44 años",
+          "color": "#b3cde3"
+        },
+        {
+          "grupo": "3",
+          "name": "45 - 64 años",
+          "color": "#ccebc5"
+        },
+        {
+          "grupo": "4",
+          "name": "65 - 69 años",
+          "color": "#decbe4"
+        },
+        {
+          "grupo": "5",
+          "name": "más de 70 años",
+          "color": "#fed9a6"
+        },
+      ]
       }
     },
     computed: {
@@ -93,12 +116,8 @@
           subtitle: {
               text: ''
           },
-          tooltip: {
-            pointFormat: '{series.name}: <b>{point.y}',
-            shared: true
-          },
           xAxis: {        
-            categories: this.categories_data
+            categories: this.campoActivo
           },
           yAxis: {
             title: {
@@ -109,34 +128,38 @@
           legend: {
             enabled: false
           },
-          series: [{
-            type: "column",
-            name: 'Positivos',
-            data: this.categories_series,
-            color: "#1c70b7"
-          }]
+          series: this.categories_series
         }
 
       },
-      categories_data() {
-
-        let grupos = map(groupBy(this.dataset, 'grupo_etario'), (item, value) => {
-          return value
-        })
-
-        return grupos
-      },
       categories_series() {
 
-        let grupos = map(groupBy(this.dataset, 'grupo_etario'), (item, value) => {
+        let data = map(groupBy(this.dataset, 'grupo_etario'), (item, value) => {
           
-          if(map(item, this.campo))
-            return (sum(map(item, this.campo)))
+          const data_values = map(this.campoActivo, campo => sum(map(item, campo)) )
+          
+          const grupo = filter(this.grupo_etario,['name', value])
+
+          return {
+            type: "column",
+            name: value,
+            data: data_values,
+            color: grupo.color
+          }
         })
 
-        return grupos
+        
+
+        return data
       }
     }
   }
 
 </script>
+
+<style lang="scss">
+  .chart-container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+</style>
