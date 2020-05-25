@@ -11,10 +11,7 @@
       <div class="col-12 col-md-4 text-center">
         <div class="form-group">
             <p><strong>Conoce los los casos de covid-19 positivos y fallecidos por grupo etario en: </strong></p>
-            <select class="form-control" id="departamentoList" @change="seleccionarMapa">
-              <option v-for="region in regiones" :value="region">{{ region }}</option>
-            </select>
-          
+            <b-form-select v-model="departamento" :options="regiones" size="sm" class="mt-3"></b-form-select>
         </div>
       </div>
     </div>
@@ -47,9 +44,6 @@
   import uniq from 'lodash/uniq'
   import orderBy from 'lodash/orderBy'
   import filter from 'lodash/filter'
-  import groupBy from 'lodash/groupBy'
-  import sum from 'lodash/sum'
-
 
   Vue.use(BootstrapVue)
   Vue.use(Vuex)
@@ -64,11 +58,6 @@
     data() {
       return {
         departamento: "AMAZONAS"
-      }
-    },
-    methods: {
-      seleccionarMapa(e) {
-        this.departamento = e.target.value
       }
     },
     computed: {

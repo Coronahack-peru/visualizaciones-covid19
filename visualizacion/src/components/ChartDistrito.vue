@@ -32,11 +32,10 @@
 <script>
   import { Chart } from 'highcharts-vue'
   import sortBy from 'lodash/sortBy'
-  import filter from 'lodash/filter'
+  import find from 'lodash/find'
   import map from 'lodash/map'
   import sum from 'lodash/sum'
   import groupBy from 'lodash/groupBy'
-  import uniq from 'lodash/uniq'
   import moment from 'moment'
 
   export default {
@@ -51,7 +50,7 @@
     data() {
       return {
         categories: [],
-        campoActivo: ['nPositivos', 'nFallecidos', 'infectadosPCP', 'muertesPCP', 'tasa_fatalidad'],
+        campoActivo: ['nPositivos', 'nFallecidos'],
         campos: [
         {
           'name':'nPositivos',
@@ -138,13 +137,16 @@
           
           const data_values = map(this.campoActivo, campo => sum(map(item, campo)) )
           
-          const grupo = filter(this.grupo_etario,['name', value])
+          const color = find(this.grupo_etario, (item) => {
+            if(item.name == value)
+              return item.color
+          })
 
           return {
             type: "column",
             name: value,
             data: data_values,
-            color: grupo.color
+            color: color.color
           }
         })
 
